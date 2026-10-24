@@ -24,25 +24,25 @@ This repository documents:
 
 ```text
 architecture/
-├── system-architecture.md
+├── 2026-10-08-taskflow-system-architecture.md
 ├── infrastructure-architecture.md
 └── observability-architecture.md
 
 infrastructure/
-├── terraform.md
-└── server-provisioning.md
+├── 2026-10-08-taskflow-terraform-infrastructure.md
+└── 2026-10-08-taskflow-server-provisioning.md
 
 deployment/
-└── application-deployment.md
+└── 2026-10-08-taskflow-application-deployment.md
 
 observability/
-└── application-metrics.md
+└── 2026-10-08-taskflow-application-metrics.md
 
 operations/
-└── troubleshooting.md
+└── 2026-10-08-taskflow-operational-troubleshooting.md
 
 engineering-log/
-└── 2026-10-07.md
+└── 2026-10-07-taskflow-infrastructure-deployment-observability-and-troubleshooting.md
 ```
 
 ## Documentation Philosophy
