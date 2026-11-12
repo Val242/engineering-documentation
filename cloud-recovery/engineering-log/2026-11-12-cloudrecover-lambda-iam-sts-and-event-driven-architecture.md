@@ -58,22 +58,31 @@ In my Terraform configuration, the Lambda resource references the execution role
 
 The role determines what the Lambda function is permitted to do when executing.
 
-My IAM configuration has three important components.
+My IAM configuration has three important components:
 
-### A. Trust policy
+1. Trust policy.
+2. Permission policy.
+3. CloudWatch logging policy.
 
-The trust policy defines who is allowed to assume an IAM role.
+### A. Trust policy — Who can assume the role?
 
-My Lambda execution role trusts the AWS Lambda service:
+A trust policy defines which identity or service is allowed to assume an IAM role.
 
-- Principal: `lambda.amazonaws.com`
-- Action: `sts:AssumeRole`
+My Lambda execution role trusts the AWS Lambda service.
 
-This allows the Lambda service to assume the execution role.
+The important elements are:
 
-### B. Permission policy
+- `Principal`: `lambda.amazonaws.com`
+- `Action`: `sts:AssumeRole`
+- `Effect`: `Allow`
 
-The permission policy defines what the assumed role is allowed to access.
+This establishes the trust relationship between the Lambda service and my execution role.
+
+The trust policy does not grant permission to retrieve secrets or write logs. It only establishes who is allowed to assume the role.
+
+### B. Permission policy — What can the role do?
+
+A permission policy defines which actions an identity is allowed or denied to perform on particular AWS resources.
 
 For CloudRecover, I grant:
 
@@ -81,16 +90,38 @@ For CloudRecover, I grant:
 
 This allows the Lambda function to retrieve the GitHub token from my specific Secrets Manager secret.
 
+The important elements are:
+
+- `Effect`: Determines whether the action is allowed or denied.
+- `Action`: Specifies the AWS operation.
+- `Resource`: Specifies the resource on which the operation is permitted.
+
 ### C. CloudWatch logging policy
 
 I also attach the AWS-managed `AWSLambdaBasicExecutionRole` policy.
 
 This allows the Lambda function to create log streams and write execution logs to CloudWatch Logs.
 
-An important distinction I learned is that trust policies and permission policies serve different purposes:
+### D. Difference between trust policies and permission policies
 
-- Trust policy: Who can assume the role?
-- Permission policy: What can the assumed role do?
+Although both are IAM policies written in JSON, they serve different purposes.
+
+| Trust policy | Permission policy |
+|---|---|
+| Defines who can assume an IAM role | Defines what an identity can do |
+| Uses `Principal` | Uses `Action` and `Resource` |
+| Commonly uses `sts:AssumeRole` | Uses service-specific actions |
+| Establishes trust | Grants permissions |
+| Configures the role's trust relationship | Attached as an inline or managed policy |
+
+A useful way to remember the difference:
+
+- Trust policy: **Who is allowed in?**
+- Permission policy: **What are they allowed to do once they have access?**
+
+Both are necessary for my Lambda execution role to work as intended.
+
+An important detail is that a trust policy is itself an IAM policy written in JSON. It is not an entirely different JSON format; it is a policy used specifically to establish a role's trust relationship.
 
 ## 5. Understanding AWS STS
 
@@ -118,9 +149,11 @@ I do not need to manually generate or configure these credentials inside my Lamb
 
 **Important distinction:** STS does not generate my GitHub token. It provides temporary AWS credentials for AWS resource access.
 
-## 6. Understanding Secrets Manager and GitHub authentication
+## 6. Understanding AWS Secrets Manager and GitHub authentication
 
-I learned that my Lambda function communicates with two different systems, and each requires a different authentication mechanism.
+I learned that my GitHub Personal Access Token (PAT) is stored in **AWS Secrets Manager**, not GitHub Secrets.
+
+My Lambda function communicates with two different systems, and each requires a different authentication mechanism.
 
 ### A. Lambda accessing AWS Secrets Manager
 
@@ -138,7 +171,7 @@ GitHub validates the token and checks whether it has sufficient repository permi
 
 If authorized, GitHub accepts the workflow dispatch request.
 
-The distinction is:
+### Authentication relationships
 
 | Communication | Authentication |
 |---|---|
@@ -262,7 +295,7 @@ Today's important takeaways:
 - STS provides temporary AWS security credentials after role assumption.
 - Lambda uses its execution role to access AWS services.
 - GitHub authentication is separate from AWS IAM authentication.
-- Secrets Manager provides a safer way to retrieve credentials at runtime.
+- Secrets Manager securely stores the GitHub token for runtime retrieval.
 - IAM roles are account-wide, but Lambda functions and SNS topics are regional.
 - SNS and Lambda must be in the same region for this subscription.
 - Terraform deployment packages must exist before Terraform calculates their hashes.
@@ -309,7 +342,9 @@ Today's work helped me understand that deploying a Lambda function involves more
 
 I need to understand its execution permissions, trust relationships, temporary credentials, regional placement, secret retrieval, dependencies, deployment artifact and event source integration.
 
-One of my most important takeaways is understanding the difference between AWS authentication and GitHub authentication. STS provides temporary AWS credentials, while the GitHub PAT authenticates requests to GitHub.
+One of my most important takeaways is understanding the difference between IAM trust policies and permission policies. A trust policy establishes who can assume a role, while a permission policy defines what that role can do.
+
+I also now understand the distinction between AWS authentication and GitHub authentication. STS provides temporary AWS credentials, while the GitHub PAT authenticates requests to GitHub.
 
 I am gradually connecting individual AWS services into a complete disaster recovery architecture rather than treating them as isolated services.
 
